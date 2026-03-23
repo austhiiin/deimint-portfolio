@@ -1,30 +1,30 @@
 import { z } from "zod";
 
-// ── DB row ───────────────────────────────────────────────────
-export type CommissionStatus = "queued" | "sketching" | "painting" | "completed";
+// ── Commission ────────────────────────────────────────────────
+export type CommissionStatus = "queued" | "sketching" | "painting" | "completed" | "cancelled";
 
 export interface Commission {
   id: string;
   client_name: string;
+  client_email: string | null;
   status: CommissionStatus;
   queue_pos: number;
   preview_url: string | null;
+  notes: string | null;
+  price: number | null;
+  medium: string | null;
+  created_at: string;
   updated_at: string;
 }
 
-// ── Status ordering / display helpers ───────────────────────
-export const STATUS_STEPS: CommissionStatus[] = [
-  "queued",
-  "sketching",
-  "painting",
-  "completed",
-];
+export const STATUS_STEPS: CommissionStatus[] = ["queued","sketching","painting","completed"];
 
 export const STATUS_LABELS: Record<CommissionStatus, string> = {
   queued:    "In Queue",
   sketching: "Sketching",
   painting:  "Painting",
   completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 export const STATUS_DESCRIPTIONS: Record<CommissionStatus, string> = {
@@ -32,25 +32,65 @@ export const STATUS_DESCRIPTIONS: Record<CommissionStatus, string> = {
   sketching: "The artist is working on initial sketches and composition.",
   painting:  "Final artwork is being painted with colour and detail.",
   completed: "Your commission is complete and ready for delivery.",
+  cancelled: "This commission has been cancelled.",
 };
 
-// ── Zod validation ───────────────────────────────────────────
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const STATUS_COLORS: Record<CommissionStatus, string> = {
+  queued:    "#8367c7",
+  sketching: "#f59e0b",
+  painting:  "#3b82f6",
+  completed: "#10b981",
+  cancelled: "#ef4444",
+};
 
-export const commissionIdSchema = z
-  .string()
-  .trim()
-  .regex(UUID_REGEX, "Please enter a valid Commission ID (UUID format).");
-
-export type CommissionIdInput = z.infer<typeof commissionIdSchema>;
-
-// ── Gallery ──────────────────────────────────────────────────
+// ── Gallery — matches Supabase gallery_items table exactly ────
 export interface GalleryItem {
   id: string;
-  src: string;
-  alt: string;
   title: string;
   medium: string;
   year: number;
+  image_url: string;
+  alt_text: string;
+  description: string | null;
+  featured: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 }
+
+// ── Contact message ───────────────────────────────────────────
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  medium: string | null;
+  budget: string | null;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+// ── Site settings ─────────────────────────────────────────────
+export interface SiteSetting {
+  key: string;
+  value: string | null;
+  updated_at: string;
+}
+
+// ── Zod ───────────────────────────────────────────────────────
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const commissionIdSchema = z.string().trim().regex(UUID_REGEX, "Please enter a valid Commission ID (UUID format).");
+export type CommissionIdInput = z.infer<typeof commissionIdSchema>;
+
+export const commissionFormSchema = z.object({
+  client_name:  z.string().min(1, "Name required"),
+  client_email: z.string().email("Valid email required").or(z.literal("")),
+  status:       z.enum(["queued","sketching","painting","completed","cancelled"]),
+  queue_pos:    z.number().int().min(0),
+  medium:       z.string().optional(),
+  price:        z.number().min(0).optional().nullable(),
+  notes:        z.string().optional(),
+  preview_url:  z.string().url().optional().or(z.literal("")).nullable(),
+});
+export type CommissionFormData = z.infer<typeof commissionFormSchema>;
