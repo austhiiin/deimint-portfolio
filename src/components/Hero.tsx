@@ -5,7 +5,6 @@ interface HeroProps { onOpenTracker: () => void; }
 export default function Hero({ onOpenTracker }: HeroProps) {
   const { settings, loading } = useSiteSettings();
   const commissionsOpen = settings["commissions_open"] !== "false";
-  const artistName      = settings["artist_name"] ?? "deimint";
 
   return (
     <section
